@@ -216,11 +216,10 @@ function implementFunctionalities() {
 				e = window.event;
 
 			var delta = 0;
-			if (e.originalEvent.wheelDelta) { /* IE/Opera. */
+			if (e.originalEvent.wheelDelta) /* IE/Opera. */
                 delta = e.originalEvent.wheelDelta/120;
-	        } else if (e.originalEvent.detail) { /* Mozilla case. */
+	        else if (e.originalEvent.detail) /* Mozilla case. */
                 delta = -e.originalEvent.detail/3;
-	        }
 
 	        if(delta >= 0)
 	        	transformations.scale(transformations.scaleFactor);
@@ -263,11 +262,10 @@ function implementFunctionalities() {
 		})
 		.on('drop', function(e) {
 			droppedFiles = e.originalEvent.dataTransfer.files;
-			if(droppedFiles[0].type.split("/")[0] == "image") {
+			if(droppedFiles[0].type.split("/")[0] == "image")
 				enterImageMode(droppedFiles[0]);
-			} else {
+			else
 				alert("the file uploaded is not an image");
-			}
 		});
 	}
 }
