@@ -208,7 +208,9 @@ function implementFunctionalities() {
 			mouse.width = e.clientX - canvOffset.left;
 			mouse.height = e.clientY - canvOffset.top;
 
-			mouse.isMoving = true;
+			// left click
+			if(e.which == 1)
+				mouse.isMoving = true;
 		}).on('mousewheel DOMMouseScroll', function(e) {
 			e.preventDefault();
 

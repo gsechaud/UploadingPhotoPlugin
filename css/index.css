@@ -53,16 +53,16 @@ html, body {
   background-color: grey;
 }
 
-button {
-	width:40px;
-	height:40px;
+.buttons {
+	position: relative;
+	padding-top: 20px;
+	text-align: center;
 }
 
-.buttons {
-	margin:auto;
-	position: relative;
-	text-align: center;
-	padding-top:20px;
+.buttons button {
+	width: 40px;
+	height: 40px;
+	padding: 0;
 }
 
 .imgCanvas:hover {
