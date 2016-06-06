@@ -195,7 +195,7 @@ function implementFunctionalities() {
             ctx.drawImage(image.object, image.posWidth, image.posHeight, image.width, image.height);
 		};
 
-		// move image with mouse functionality
+		// move image if mouse event caught and current selected component is the canvas
 		$(canvas).on('mousedown', function(e) {
 			e.preventDefault();
 			var canvOffset = $(canvas).offset();
@@ -204,9 +204,10 @@ function implementFunctionalities() {
 			mouse.width = e.clientX - canvOffset.left;
 			mouse.height = e.clientY - canvOffset.top;
 
-			// left click
+			// left click only for moving image inside canvas
 			if(e.which == 1)
 				mouse.isMoving = true;
+		// zoom in/out depending on the scroll data
 		}).on('mousewheel DOMMouseScroll', function(e) {
 			e.preventDefault();
 
@@ -218,17 +219,13 @@ function implementFunctionalities() {
 			if (e.originalEvent.wheelDelta) { /* IE/Opera. */
                 delta = e.originalEvent.wheelDelta/120;
 	        } else if (e.originalEvent.detail) { /* Mozilla case. */
-                // In Mozilla, sign of delta is different than in IE. Also, delta is multiple of 3.
                 delta = -e.originalEvent.detail/3;
 	        }
 
-	        if(delta >= 0) {
-	        	transformations.scaleGlobal *= transformations.scaleFactor;
-	        } else {
-	        	transformations.scaleGlobal /= transformations.scaleFactor;
-	        }
-
-			performAction();
+	        if(delta >= 0)
+	        	transformations.scale(transformations.scaleFactor);
+	        else
+	        	transformations.scale(1/transformations.scaleFactor);
 		});
 
 		// update mouse position, and move image if in movable image mode
@@ -239,18 +236,16 @@ function implementFunctionalities() {
 			mouse.width = event.clientX - canvasOffset.left;
 			mouse.height = event.clientY - canvasOffset.top;
 
-			if(mouse.isMoving) {
-				transformations.translateWidth += diffW;
-				transformations.translateHeight += diffH;
-				performAction();
-			}
+			if(mouse.isMoving)
+				transformations.translate(diffW, diffH);
+
 		}).on("mouseup", function(event) {
 			mouse.isMoving = false;
 		});
 
 	}, false);
 
-	// drag and drop functionality
+	// drag and drop upload functionality
 	if (isAdvancedUpload) {
 		$form.addClass('has-advanced-upload');
 
@@ -277,6 +272,7 @@ function implementFunctionalities() {
 	}
 }
 
+// verify that the draggable functionality is supported by the current configuration of the user
 function isAdvancedUpload() {
 	var div = document.createElement('div');
 	return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window;
