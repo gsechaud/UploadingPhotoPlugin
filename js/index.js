@@ -37,16 +37,16 @@ function initPhysicalComponents() {
 			$(".box__input").append("<input class='box__file' accept='image/*' type='file' id='file' onchange='uploadManually()'/>")
 							.append("<label for='file'><strong>Choose a file</strong></label><span class='box__dragndrop'> or drag it here</span>.");
 		$(".buttons").append('<button onclick="backToUploadArea()">Canc</button>')
-					 .append('<button onclick="rotateImage(10)">&#8635</button>')
-					 .append('<button onclick="rotateImage(-10)">&#8634</button>')
-					 .append('<button onclick="translateImage(-10,0)">&#8592</button>')
-					 .append('<button onclick="translateImage(0,-10)">&#8593</button>')
-					 .append('<button onclick="translateImage(10,0)">&#8594</button>')
-					 .append('<button onclick="translateImage(0,10)">&#8595</button>')
-					 .append('<button onclick="scaleCanvas(transformations.scaleFactor)">+</button>')
-					 .append('<button onclick="scaleCanvas(1/transformations.scaleFactor)">-</button>')
-					 .append('<button onclick="flip(-1,1)">&#8596</button>')
-					 .append('<button onclick="flip(1,-1)">&#8597</button>')
+					 .append('<button onclick="transformations.rotate(10)">&#8635</button>')
+					 .append('<button onclick="transformations.rotate(-10)">&#8634</button>')
+					 .append('<button onclick="transformations.translate(-10,0)">&#8592</button>')
+					 .append('<button onclick="transformations.translate(0,-10)">&#8593</button>')
+					 .append('<button onclick="transformations.translate(10,0)">&#8594</button>')
+					 .append('<button onclick="transformations.translate(0,10)">&#8595</button>')
+					 .append('<button onclick="transformations.scale(transformations.scaleFactor)">+</button>')
+					 .append('<button onclick="transformations.scale(1/transformations.scaleFactor)">-</button>')
+					 .append('<button onclick="transformations.flip(-1,1)">&#8596</button>')
+					 .append('<button onclick="transformations.flip(1,-1)">&#8597</button>')
 					 .append('<button onclick="generatePreview()">Prev</button>');
 
 	initializeInstances();
@@ -88,6 +88,25 @@ var transformations = {
 
 		this.flipHorizontal = 1;
 		this.flipVertical = 1;
+	},
+	rotate: function(angle) {
+		transformations.rotationAngle += angle;
+		transformations.rotationAngle %= 360;
+		performAction();
+	},
+	scale: function(scaleValue) {
+		transformations.scaleGlobal *= scaleValue;
+		performAction();
+	},
+	translate: function(w_pixels, h_pixels) {
+		transformations.translateWidth += w_pixels;
+		transformations.translateHeight += h_pixels;				
+		performAction();
+	},
+	flip: function(horizontal, vertical) {
+		transformations.flipHorizontal *= horizontal;
+		transformations.flipVertical *= vertical;
+		performAction();
 	}
 };
 
@@ -99,29 +118,6 @@ var mouse = {
 
 function clearCanvas() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
-
-function rotateImage(angle) {
-	transformations.rotationAngle += angle;
-	transformations.rotationAngle %= 360;
-	performAction();
-}
-
-function scaleCanvas(scaleValue) { // TODO : maybe scale at the center of the canvas instead of the center of the image
-	transformations.scaleGlobal *= scaleValue;
-	performAction();
-}
-
-function translateImage(w_pixels, h_pixels) {
-	transformations.translateWidth += w_pixels;
-	transformations.translateHeight += h_pixels;				
-	performAction();
-}
-
-function flip(horizontal, vertical) {
-	transformations.flipHorizontal *= horizontal;
-	transformations.flipVertical *= vertical;
-	performAction();
 }
 
 function performAction() {
@@ -271,7 +267,7 @@ function implementFunctionalities() {
 			$form.removeClass('is-dragover');
 		})
 		.on('drop', function(e) {
-			droppedFiles = e.originalEvent.dataTransfer.files; // e.dataTransfer.files
+			droppedFiles = e.originalEvent.dataTransfer.files;
 			if(droppedFiles[0].type.split("/")[0] == "image") {
 				enterImageMode(droppedFiles[0]);
 			} else {
