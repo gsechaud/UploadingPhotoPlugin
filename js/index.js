@@ -19,20 +19,35 @@ function include(filename, onload) {
     head.appendChild(script);
 }
 
-include("https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js", function() {
-    $(document).ready(function() {
-    	initPhysicalComponents();
-    });
-});
+importJQuery();
+
+// import jquery library
+function importJQuery() {
+	include("http://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js", function() {
+	    $(document).ready(function() {
+	    	importJQueryUI();
+	    });
+	});
+}
+
+// import JQuery UI library
+function importJQueryUI() {
+	include("http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js", function() {
+	    $(document).ready(function() {
+	    	initPhysicalComponents();
+	    });
+	});
+}
 
 // -------------- plugin execution ----------------
 
-// fill the "windowPlugin" div and ""
+// fill the "windowPlugin" class div
 function initPhysicalComponents() {
 	$(".windowPlugin").append("<div class='fullBox'></div>")
 					  .append("<div class='buttons'>");
 		$(".fullBox").append("<form class='box' method='post' action='' enctype='multipart/form-data'></form>")
-					 .append("<canvas class='imgCanvas'></canvas>");
+					 .append("<canvas class='imgCanvas'></canvas>")
+					 .append("<div id='cropArea' style='display:none;position:absolute;width:50%;height:50%;left:25%;top:25%;opacity:0.3;background-color:white;border:1px dotted grey;z-index:1'></div>");
 			$(".box").append("<div class='box__input'></div>");
 			$(".box__input").append("<input class='box__file' accept='image/*' type='file' id='file' onchange='uploadManually()'/>")
 							.append("<label for='file'><strong>Choose a file</strong></label><span class='box__dragndrop'> or drag it here</span>.");
@@ -47,7 +62,8 @@ function initPhysicalComponents() {
 					 .append('<button onclick="transformations.scale(1/transformations.scaleFactor)">-</button>')
 					 .append('<button onclick="transformations.flip(-1,1)">&#8596</button>')
 					 .append('<button onclick="transformations.flip(1,-1)">&#8597</button>')
-					 .append('<button onclick="generatePreview()">Prev</button>');
+					 .append('<button onclick="generatePreview()">Prev</button>')
+					 .append('<button onclick="cropMode()">Crop</button>');
 
 	initializeInstances();
 }
@@ -55,10 +71,18 @@ function initPhysicalComponents() {
 function initializeInstances() {
 	fr = new FileReader();
 	$form = $('.box');
-	canvas = $(".imgCanvas")[0];
-	ctx = canvas.getContext("2d");
+
+	canvasBox = new Canvas($(".imgCanvas")[0]);
+
+	$cropArea = $("#cropArea");
+	canvasPreview = new Canvas(document.createElement("canvas"));
 
 	implementFunctionalities();
+}
+
+function Canvas(canvas) {
+	this.canvas = canvas;
+	this.ctx = canvas.getContext("2d");
 }
 
 var image = {
@@ -67,6 +91,12 @@ var image = {
 	height: 0,
 	posWidth: 0,
 	posHeight: 0
+};
+
+var mouse = {
+	width: 0,
+	height: 0,
+	isMoving: false
 };
 
 var transformations = {
@@ -110,32 +140,38 @@ var transformations = {
 	}
 };
 
-var mouse = {
-	width: 0,
-	height: 0,
-	isMoving: false
-};
+function cropMode() {
+	$cropArea.css("display") == "none" ? $cropArea.css("display", "block") : $cropArea.css("display", "none")
+	$cropArea.draggable({containment:"parent"})
+			 .resizable({
+			 	start: function(event, ui) { // set max size at resize functionality of the crop area
+			 		$cropArea.css("max-height", $cropArea.parent().height() - $cropArea.position().top);
+			 		$cropArea.css("max-width", $cropArea.parent().width() - $cropArea.position().left);
+			 	},
+			 	aspectRatio:true
+			 });
+}
 
 function clearCanvas() {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	canvasBox.ctx.clearRect(0, 0, canvasBox.canvas.width, canvasBox.canvas.height);
 }
 
 function performAction() {
 	clearCanvas();
 
-	ctx.save();
+	canvasBox.ctx.save();
 
-	ctx.translate(image.posWidth + image.width/2, image.posHeight + image.height/2);
-	ctx.translate(transformations.translateWidth, transformations.translateHeight);
+	canvasBox.ctx.translate(image.posWidth + image.width/2, image.posHeight + image.height/2);
+	canvasBox.ctx.translate(transformations.translateWidth, transformations.translateHeight);
 
-	ctx.scale(transformations.scaleGlobal, transformations.scaleGlobal);
+	canvasBox.ctx.scale(transformations.scaleGlobal, transformations.scaleGlobal);
 	
-	ctx.rotate(transformations.rotationAngle*Math.PI/180);
-	ctx.scale(transformations.flipHorizontal, transformations.flipVertical);
+	canvasBox.ctx.rotate(transformations.rotationAngle*Math.PI/180);
+	canvasBox.ctx.scale(transformations.flipHorizontal, transformations.flipVertical);
 
-	ctx.drawImage(image.object, -image.width/2, -image.height/2, image.width, image.height);
+	canvasBox.ctx.drawImage(image.object, -image.width/2, -image.height/2, image.width, image.height);
 
-	ctx.restore();
+	canvasBox.ctx.restore();
 }
 
 function uploadManually() {
@@ -148,12 +184,33 @@ function enterImageMode(image) {
 }
 
 function generatePreview() {
-	var finalImage = canvas.toDataURL();
+	var imageData;
+	var finalImage;
+
+	// if crop functionality is enabled
+	if($cropArea.css("display") == "block") {
+		// first get image data from the canvas according to the crop area position
+		imageData = canvasBox.ctx.getImageData($cropArea.position().left, $cropArea.position().top, $cropArea.width(), $cropArea.height());
+		canvasPreview.canvas.width = $cropArea.width();
+		canvasPreview.canvas.height = $cropArea.height();
+
+		// store the data in the new canvas
+		canvasPreview.ctx.putImageData(imageData, 0, 0);
+
+		// get the base64 format image from the previous created canvas containing the image displayed in the crop area
+		finalImage = canvasPreview.canvas.toDataURL();
+	} else { // else, we get the entire canvas
+		canvasPreview.canvas.width = canvasBox.canvas.width/2;
+		canvasPreview.canvas.height = canvasBox.canvas.height/2;
+		finalImage = canvasBox.canvas.toDataURL();
+	}
+
+	// set the preview image
 	var $img = $(".imgPreview");
 	$img.css("display", "block");
-	$img.css("width", canvas.width/2);
-	$img.css("height", canvas.height/2);
-	$img.css("background-color", canvas.style.backgroundColor);
+	$img.css("width", canvasPreview.canvas.width);
+	$img.css("height", canvasPreview.canvas.height);
+	$img.css("background-color", canvasBox.canvas.style.backgroundColor);
 	$(".imgPreview").attr("src", finalImage);
 }
 
@@ -164,41 +221,60 @@ function backToUploadArea() {
 	transformations.resetTransformations();
 }
 
+function scrollMouse(e) {
+	e.preventDefault();
+
+	// for IE
+	if(!e)
+		e = window.event;
+
+	var delta = 0;
+	if (e.originalEvent.wheelDelta) /* IE/Opera. */
+        delta = e.originalEvent.wheelDelta/120;
+    else if (e.originalEvent.detail) /* Mozilla case. */
+        delta = -e.originalEvent.detail/3;
+
+    if(delta >= 0)
+    	transformations.scale(transformations.scaleFactor);
+    else
+    	transformations.scale(1/transformations.scaleFactor);
+}
+
 function implementFunctionalities() {
 	// initialize the image and place it in the good dimensions in the canvas
 	fr.addEventListener("load", function() {
 		$form.css("display", "none");
 		$(".buttons").css("display", "block");
-		canvas.style.display = "block";
-		canvas.style.backgroundColor = "grey";
+		canvasBox.canvas.style.display = "block";
+		canvasBox.canvas.style.backgroundColor = "grey";
 
 	    // fit the canvas to the parent div
-	    canvas.style.width ='100%';
-		canvas.style.height='100%';
-		canvas.width  = canvas.offsetWidth;
-		canvas.height = canvas.offsetHeight;
+	    canvasBox.canvas.style.width ='100%';
+		canvasBox.canvas.style.height='100%';
+		canvasBox.canvas.width  = canvasBox.canvas.offsetWidth;
+		canvasBox.canvas.height = canvasBox.canvas.offsetHeight;
 
 		// load the image fitted to the canvas window
 		image.object.src = fr.result;
 		image.object.onload = function() {
             var wrh = image.object.width / image.object.height;
-            var newWidth = canvas.width;
+            var newWidth = canvasBox.canvas.width;
             var newHeight = newWidth / wrh;
-            if (newHeight > canvas.height) {
-                newHeight = canvas.height;
+            if (newHeight > canvasBox.canvas.height) {
+                newHeight = canvasBox.canvas.height;
                 newWidth = newHeight * wrh;
         	}
         	image.width = newWidth;
         	image.height = newHeight;
-        	image.posWidth = (canvas.width-newWidth)/2;
-        	image.posHeight = (canvas.height-newHeight)/2;
-            ctx.drawImage(image.object, image.posWidth, image.posHeight, image.width, image.height);
+        	image.posWidth = (canvasBox.canvas.width-newWidth)/2;
+        	image.posHeight = (canvasBox.canvas.height-newHeight)/2;
+            canvasBox.ctx.drawImage(image.object, image.posWidth, image.posHeight, image.width, image.height);
 		};
 
 		// move image if mouse event caught and current selected component is the canvas
-		$(canvas).on('mousedown', function(e) {
+		$(canvasBox.canvas).on('mousedown', function(e) {
 			e.preventDefault();
-			var canvOffset = $(canvas).offset();
+			var canvOffset = $(canvasBox.canvas).offset();
 
 			// allow to get direct correct position of drag, not (0,0) in the top left corner of the image
 			mouse.width = e.clientX - canvOffset.left;
@@ -209,27 +285,17 @@ function implementFunctionalities() {
 				mouse.isMoving = true;
 		// zoom in/out depending on the scroll data
 		}).on('mousewheel DOMMouseScroll', function(e) {
-			e.preventDefault();
+			scrollMouse(e);
+		});
 
-			// for IE
-			if(!e)
-				e = window.event;
-
-			var delta = 0;
-			if (e.originalEvent.wheelDelta) /* IE/Opera. */
-                delta = e.originalEvent.wheelDelta/120;
-	        else if (e.originalEvent.detail) /* Mozilla case. */
-                delta = -e.originalEvent.detail/3;
-
-	        if(delta >= 0)
-	        	transformations.scale(transformations.scaleFactor);
-	        else
-	        	transformations.scale(1/transformations.scaleFactor);
+		// same behaviour at scroll on crop area
+		$cropArea.on('mousewheel DOMMouseScroll', function(e) {
+			scrollMouse(e);
 		});
 
 		// update mouse position, and move image if in movable image mode
 		$(window).on('mousemove', function(event) {
-			var canvasOffset = $(canvas).offset();
+			var canvasOffset = $(canvasBox.canvas).offset();
 			var diffW = (event.clientX - canvasOffset.left) - mouse.width;
 			var diffH = (event.clientY - canvasOffset.top) - mouse.height;
 			mouse.width = event.clientX - canvasOffset.left;
