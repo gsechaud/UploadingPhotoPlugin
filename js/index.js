@@ -32,10 +32,14 @@ function importJQuery() {
 
 // import JQuery UI library
 function importJQueryUI() {
-	include("http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js", function() {
-	    $(document).ready(function() {
-	    	initPhysicalComponents();
-	    });
+	$.getScript("http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js", function() {
+		importColorPicker();
+	});
+}
+
+function importColorPicker() {
+	$.getScript("https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js", function() {
+		initPhysicalComponents();
 	});
 }
 
@@ -63,7 +67,8 @@ function initPhysicalComponents() {
 					 .append('<button onclick="transformations.flip(-1,1)">&#8596</button>')
 					 .append('<button onclick="transformations.flip(1,-1)">&#8597</button>')
 					 .append('<button onclick="generatePreview()">Prev</button>')
-					 .append('<button onclick="cropMode()">Crop</button>');
+					 .append('<button onclick="cropMode()">Crop</button>')
+					 .append('<input class="jscolor" style="font-size:0px" value="dddddd"/>');
 
 	initializeInstances();
 }
@@ -73,6 +78,9 @@ function initializeInstances() {
 	$form = $('.box');
 
 	canvasBox = new Canvas($(".imgCanvas")[0]);
+	canvasBox.updateBackground($(".jscolor").attr("value"));
+
+	$(".jscolor").attr("class", "jscolor {onFineChange:'canvasBox.updateBackground(this)'}");
 
 	$cropArea = $("#cropArea");
 	canvasPreview = new Canvas(document.createElement("canvas"));
@@ -80,9 +88,17 @@ function initializeInstances() {
 	implementFunctionalities();
 }
 
+function updateCanvasBackground(jscolor) {
+	canvasBox.canvas.style.backgroundColor = '#' + jscolor
+}
+
 function Canvas(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
+
+	this.updateBackground = function(jscolor) {
+		this.canvas.style.backgroundColor = '#' + jscolor;
+	}
 }
 
 var image = {
@@ -246,7 +262,6 @@ function implementFunctionalities() {
 		$form.css("display", "none");
 		$(".buttons").css("display", "block");
 		canvasBox.canvas.style.display = "block";
-		canvasBox.canvas.style.backgroundColor = "grey";
 
 	    // fit the canvas to the parent div
 	    canvasBox.canvas.style.width ='100%';

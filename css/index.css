@@ -65,6 +65,12 @@ html, body {
 	padding: 0;
 }
 
+.buttons input {
+	width:35px;
+	height:35px;
+	float:right;
+}
+
 .imgCanvas:hover {
 	cursor:move;
 }
