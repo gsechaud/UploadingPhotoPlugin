@@ -15,3 +15,4 @@ In image modification mode:
 - Arrow buttons allow to move the canvas of the area in the directions corresponding to the buttons
 - "+" and "-" buttons allow to zoom/dezoom
 - Rotation buttons allow to rotate the canvas
+- Extra space rectangle allows to launch a color picker to set the background color of the canvas
