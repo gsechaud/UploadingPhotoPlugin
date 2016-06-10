@@ -88,10 +88,6 @@ function initializeInstances() {
 	implementFunctionalities();
 }
 
-function updateCanvasBackground(jscolor) {
-	canvasBox.canvas.style.backgroundColor = '#' + jscolor
-}
-
 function Canvas(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
