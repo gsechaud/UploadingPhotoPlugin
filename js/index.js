@@ -33,12 +33,6 @@ function importJQuery() {
 // import JQuery UI library
 function importJQueryUI() {
 	$.getScript("http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js", function() {
-		importColorPicker();
-	});
-}
-
-function importColorPicker() {
-	$.getScript("https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js", function() {
 		initPhysicalComponents();
 	});
 }
@@ -52,8 +46,7 @@ function initPhysicalComponents() {
 		$(".fullBox").append("<form class='box' method='post' action='' enctype='multipart/form-data'></form>")
 					 .append("<canvas class='imgCanvas'></canvas>")
 					 .append("<div id='cropArea' style='display:none;position:absolute;width:50%;height:50%;left:25%;top:25%;opacity:0.3;background-color:white;border:1px dotted grey;z-index:1'></div>");
-			$(".box").append("<div class='box__input'></div>");
-			$(".box__input").append("<input class='box__file' accept='image/*' type='file' id='file' onchange='uploadManually()'/>")
+			$(".box").append("<input class='box__file' accept='image/*' type='file' id='file' onchange='uploadManually()'/>")
 							.append("<label for='file'><strong>Choose a file</strong></label><span class='box__dragndrop'> or drag it here</span>.");
 		$(".buttons").append('<button onclick="backToUploadArea()">Canc</button>')
 					 .append('<button onclick="transformations.rotate(10)">&#8635</button>')
@@ -68,7 +61,6 @@ function initPhysicalComponents() {
 					 .append('<button onclick="transformations.flip(1,-1)">&#8597</button>')
 					 .append('<button onclick="generatePreview()">Prev</button>')
 					 .append('<button onclick="cropMode()">Crop</button>')
-					 .append('<input class="jscolor" style="font-size:0px" value="dddddd"/>');
 
 	initializeInstances();
 }
@@ -78,9 +70,7 @@ function initializeInstances() {
 	$form = $('.box');
 
 	canvasBox = new Canvas($(".imgCanvas")[0]);
-	canvasBox.updateBackground($(".jscolor").attr("value"));
-
-	$(".jscolor").attr("class", "jscolor {onFineChange:'canvasBox.updateBackground(this)'}");
+	canvasBox.updateBackground("dddddd");
 
 	$cropArea = $("#cropArea");
 	canvasPreview = new Canvas(document.createElement("canvas"));
@@ -92,8 +82,8 @@ function Canvas(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
 
-	this.updateBackground = function(jscolor) {
-		this.canvas.style.backgroundColor = '#' + jscolor;
+	this.updateBackground = function(color) {
+		this.canvas.style.backgroundColor = '#' + color;
 	}
 }
 
@@ -227,6 +217,8 @@ function generatePreview() {
 }
 
 function backToUploadArea() {
+	transformations.resetTransformations();
+	$cropArea.css("display", "none");
 	$form.css("display", "inline-block");
 	$(".buttons").css("display", "none");
 	canvas.style.display = "none";

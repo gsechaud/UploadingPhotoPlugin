@@ -44,9 +44,9 @@ html, body {
 	display: inline;
 }
 
-.box__input {
+.box {
 	display: inline-block;
-	vertical-align: middle;
+	vertical-align:middle;
 }
 
 .box.is-dragover {
@@ -63,12 +63,6 @@ html, body {
 	width: 40px;
 	height: 40px;
 	padding: 0;
-}
-
-.buttons input {
-	width:35px;
-	height:35px;
-	float:right;
 }
 
 .imgCanvas:hover {
