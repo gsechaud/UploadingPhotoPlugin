@@ -49,16 +49,16 @@ function initPhysicalComponents() {
 			$(".box").append("<input class='box__file' accept='image/*' type='file' id='file' onchange='uploadManually()'/>")
 							.append("<label for='file'><strong>Choose a file</strong></label><span class='box__dragndrop'> or drag it here</span>.");
 		$(".buttons").append('<button onclick="backToUploadArea()">Canc</button>')
-					 .append('<button onclick="transformations.rotate(10)">&#8635</button>')
-					 .append('<button onclick="transformations.rotate(-10)">&#8634</button>')
-					 .append('<button onclick="transformations.translate(-10,0)">&#8592</button>')
-					 .append('<button onclick="transformations.translate(0,-10)">&#8593</button>')
-					 .append('<button onclick="transformations.translate(10,0)">&#8594</button>')
-					 .append('<button onclick="transformations.translate(0,10)">&#8595</button>')
-					 .append('<button onclick="transformations.scale(transformations.scaleFactor)">+</button>')
-					 .append('<button onclick="transformations.scale(1/transformations.scaleFactor)">-</button>')
-					 .append('<button onclick="transformations.flip(-1,1)">&#8596</button>')
-					 .append('<button onclick="transformations.flip(1,-1)">&#8597</button>')
+					 .append('<button onclick="canvasBox.transformations.rotate(10)">&#8635</button>')
+					 .append('<button onclick="canvasBox.transformations.rotate(-10)">&#8634</button>')
+					 .append('<button onclick="canvasBox.transformations.translate(-10,0)">&#8592</button>')
+					 .append('<button onclick="canvasBox.transformations.translate(0,-10)">&#8593</button>')
+					 .append('<button onclick="canvasBox.transformations.translate(10,0)">&#8594</button>')
+					 .append('<button onclick="canvasBox.transformations.translate(0,10)">&#8595</button>')
+					 .append('<button onclick="canvasBox.transformations.scale(transformations.scaleFactor)">+</button>')
+					 .append('<button onclick="canvasBox.transformations.scale(1/transformations.scaleFactor)">-</button>')
+					 .append('<button onclick="canvasBox.transformations.flip(-1,1)">&#8596</button>')
+					 .append('<button onclick="canvasBox.transformations.flip(1,-1)">&#8597</button>')
 					 .append('<button onclick="generatePreview()">Prev</button>')
 					 .append('<button onclick="cropMode()">Crop</button>')
 
@@ -81,9 +81,52 @@ function initializeInstances() {
 function Canvas(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
+	this.transformations = {
+		rotationAngle: 0,
+		scaleGlobal: 1.0,
+		scaleFactor: 1.05,
+		translateWidth: 0.0,
+		translateHeight: 0.0,
+		flipHorizontal: 1,
+		flipVertical: 1,
+		clear: function() {
+			this.rotationAngle = 0;
+
+			this.scaleGlobal = 1.0;
+			this.scaleFactor = 1.05;
+
+			this.translateWidth = 0.0;
+			this.translateHeight = 0.0;
+
+			this.flipHorizontal = 1;
+			this.flipVertical = 1;
+		},
+		rotate: function(angle) {
+			this.rotationAngle += angle;
+			this.rotationAngle %= 360;
+			performAction();
+		},
+		scale: function(scaleValue) {
+			this.scaleGlobal *= scaleValue;
+			performAction();
+		},
+		translate: function(w_pixels, h_pixels) {
+			this.translateWidth += w_pixels;
+			this.translateHeight += h_pixels;				
+			performAction();
+		},
+		flip: function(horizontal, vertical) {
+			this.flipHorizontal *= horizontal;
+			this.flipVertical *= vertical;
+			performAction();
+		}
+	}
 
 	this.updateBackground = function(color) {
 		this.canvas.style.backgroundColor = '#' + color;
+	},
+	this.clear = function() {
+		this.ctx.clearRect(0, 0, canvasBox.canvas.width, canvasBox.canvas.height);
 	}
 }
 
@@ -101,47 +144,6 @@ var mouse = {
 	isMoving: false
 };
 
-var transformations = {
-	rotationAngle: 0,
-	scaleGlobal: 1.0,
-	scaleFactor: 1.05,
-	translateWidth: 0.0,
-	translateHeight: 0.0,
-	flipHorizontal: 1,
-	flipVertical: 1,
-	resetTransformations: function() {
-		this.rotationAngle = 0;
-
-		this.scaleGlobal = 1.0;
-		this.scaleFactor = 1.05;
-
-		this.translateWidth = 0.0;
-		this.translateHeight = 0.0;
-
-		this.flipHorizontal = 1;
-		this.flipVertical = 1;
-	},
-	rotate: function(angle) {
-		transformations.rotationAngle += angle;
-		transformations.rotationAngle %= 360;
-		performAction();
-	},
-	scale: function(scaleValue) {
-		transformations.scaleGlobal *= scaleValue;
-		performAction();
-	},
-	translate: function(w_pixels, h_pixels) {
-		transformations.translateWidth += w_pixels;
-		transformations.translateHeight += h_pixels;				
-		performAction();
-	},
-	flip: function(horizontal, vertical) {
-		transformations.flipHorizontal *= horizontal;
-		transformations.flipVertical *= vertical;
-		performAction();
-	}
-};
-
 function cropMode() {
 	$cropArea.css("display") == "none" ? $cropArea.css("display", "block") : $cropArea.css("display", "none")
 	$cropArea.draggable({containment:"parent"})
@@ -154,22 +156,18 @@ function cropMode() {
 			 });
 }
 
-function clearCanvas() {
-	canvasBox.ctx.clearRect(0, 0, canvasBox.canvas.width, canvasBox.canvas.height);
-}
-
 function performAction() {
-	clearCanvas();
+	canvasBox.clear();
 
 	canvasBox.ctx.save();
 
 	canvasBox.ctx.translate(image.posWidth + image.width/2, image.posHeight + image.height/2);
-	canvasBox.ctx.translate(transformations.translateWidth, transformations.translateHeight);
+	canvasBox.ctx.translate(canvasBox.transformations.translateWidth, canvasBox.transformations.translateHeight);
 
-	canvasBox.ctx.scale(transformations.scaleGlobal, transformations.scaleGlobal);
+	canvasBox.ctx.scale(canvasBox.transformations.scaleGlobal, canvasBox.transformations.scaleGlobal);
 	
-	canvasBox.ctx.rotate(transformations.rotationAngle*Math.PI/180);
-	canvasBox.ctx.scale(transformations.flipHorizontal, transformations.flipVertical);
+	canvasBox.ctx.rotate(canvasBox.transformations.rotationAngle*Math.PI/180);
+	canvasBox.ctx.scale(canvasBox.transformations.flipHorizontal, canvasBox.transformations.flipVertical);
 
 	canvasBox.ctx.drawImage(image.object, -image.width/2, -image.height/2, image.width, image.height);
 
@@ -217,12 +215,12 @@ function generatePreview() {
 }
 
 function backToUploadArea() {
-	transformations.resetTransformations();
+	canvasBox.transformations.clear();
 	$cropArea.css("display", "none");
 	$form.css("display", "inline-block");
 	$(".buttons").css("display", "none");
 	canvas.style.display = "none";
-	transformations.resetTransformations();
+	canvasBox.transformations.clear();
 }
 
 function scrollMouse(e) {
@@ -239,9 +237,9 @@ function scrollMouse(e) {
         delta = -e.originalEvent.detail/3;
 
     if(delta >= 0)
-    	transformations.scale(transformations.scaleFactor);
+    	canvasBox.transformations.scale(canvasBox.transformations.scaleFactor);
     else
-    	transformations.scale(1/transformations.scaleFactor);
+    	canvasBox.transformations.scale(1/canvasBox.transformations.scaleFactor);
 }
 
 function implementFunctionalities() {
@@ -305,7 +303,7 @@ function implementFunctionalities() {
 			mouse.height = event.clientY - canvasOffset.top;
 
 			if(mouse.isMoving)
-				transformations.translate(diffW, diffH);
+				canvasBox.transformations.translate(diffW, diffH);
 
 		}).on("mouseup", function(event) {
 			mouse.isMoving = false;
