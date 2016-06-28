@@ -1,5 +1,7 @@
 // --------------- jquery include ----------------------
+// 	TODO ; there could be exist an easier way to include those js files inside an other, but didn't found an other simpler way
 
+// include function for js source
 function include(filename, onload) {
     var head = document.getElementsByTagName('head')[0];
     var script = document.createElement('script');
@@ -21,7 +23,7 @@ function include(filename, onload) {
 
 importJQuery();
 
-// import jquery library
+// import JQuery library
 function importJQuery() {
 	include("http://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js", function() {
 	    $(document).ready(function() {
@@ -30,7 +32,7 @@ function importJQuery() {
 	});
 }
 
-// import JQuery UI library
+// import JQuery UI library, mostly (only) used for the crop area
 function importJQueryUI() {
 	$.getScript("http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.js", function() {
 		initPhysicalComponents();
@@ -38,6 +40,16 @@ function importJQueryUI() {
 }
 
 // -------------- plugin execution ----------------
+// 
+// --- hierarchy ---
+// 					div ("windowPlugin")
+// 				     /				\
+// 			  div ("fullBox")	div ("buttons")
+// 	
+// 	where "fullBox" contains a form for the uploading functionality of the plugin
+// 						 and a canvas for the manipulation functionality of the image
+// 						    (a div "cropArea" allowing to display or not the crop rectangle when enabled on the manipulation view)
+// 		each displaying or not depending on state of the execution of the plugin.
 
 // fill the "windowPlugin" class div
 function initPhysicalComponents() {
@@ -70,9 +82,11 @@ function initializeInstances() {
 	$form = $('.box');
 
 	canvasBox = new Canvas($(".imgCanvas")[0]);
-	canvasBox.updateBackground("dddddd");
+	canvasBox.updateBackground("dddddd"); // background-color of the canvas, may be more customizable for more possibility for the user (e.g. colorPicker)
 
 	$cropArea = $("#cropArea");
+
+	// used for the preview and set the dimension to a "fictive" canvas used to store the image obtained from the manipulation view
 	canvasPreview = new Canvas(document.createElement("canvas"));
 
 	implementFunctionalities();
@@ -81,6 +95,8 @@ function initializeInstances() {
 function Canvas(canvas) {
 	this.canvas = canvas;
 	this.ctx = canvas.getContext("2d");
+
+	// all transformations configurations and functions for the canvas (manipulation view)
 	this.transformations = {
 		rotationAngle: 0,
 		scaleGlobal: 1.0,
@@ -121,7 +137,6 @@ function Canvas(canvas) {
 			performAction();
 		}
 	}
-
 	this.updateBackground = function(color) {
 		this.canvas.style.backgroundColor = '#' + color;
 	},
@@ -143,104 +158,6 @@ var mouse = {
 	height: 0,
 	isMoving: false
 };
-
-function cropMode() {
-	$cropArea.css("display") == "none" ? $cropArea.css("display", "block") : $cropArea.css("display", "none")
-	$cropArea.draggable({containment:"parent"})
-			 .resizable({
-			 	start: function(event, ui) { // set max size at resize functionality of the crop area
-			 		$cropArea.css("max-height", $cropArea.parent().height() - $cropArea.position().top);
-			 		$cropArea.css("max-width", $cropArea.parent().width() - $cropArea.position().left);
-			 	},
-			 	aspectRatio:true
-			 });
-}
-
-function performAction() {
-	canvasBox.clear();
-
-	canvasBox.ctx.save();
-
-	canvasBox.ctx.translate(image.posWidth + image.width/2, image.posHeight + image.height/2);
-	canvasBox.ctx.translate(canvasBox.transformations.translateWidth, canvasBox.transformations.translateHeight);
-
-	canvasBox.ctx.scale(canvasBox.transformations.scaleGlobal, canvasBox.transformations.scaleGlobal);
-	
-	canvasBox.ctx.rotate(canvasBox.transformations.rotationAngle*Math.PI/180);
-	canvasBox.ctx.scale(canvasBox.transformations.flipHorizontal, canvasBox.transformations.flipVertical);
-
-	canvasBox.ctx.drawImage(image.object, -image.width/2, -image.height/2, image.width, image.height);
-
-	canvasBox.ctx.restore();
-}
-
-function uploadManually() {
-	var file = document.querySelector('input[type=file]').files[0];
-	enterImageMode(file);
-}
-
-function enterImageMode(image) {
-	fr.readAsDataURL(image);
-}
-
-function generatePreview() {
-	var imageData;
-	var finalImage;
-
-	// if crop functionality is enabled
-	if($cropArea.css("display") == "block") {
-		// first get image data from the canvas according to the crop area position
-		imageData = canvasBox.ctx.getImageData($cropArea.position().left, $cropArea.position().top, $cropArea.width(), $cropArea.height());
-		canvasPreview.canvas.width = $cropArea.width();
-		canvasPreview.canvas.height = $cropArea.height();
-
-		// store the data in the new canvas
-		canvasPreview.ctx.putImageData(imageData, 0, 0);
-
-		// get the base64 format image from the previous created canvas containing the image displayed in the crop area
-		finalImage = canvasPreview.canvas.toDataURL();
-	} else { // else, we get the entire canvas
-		canvasPreview.canvas.width = canvasBox.canvas.width/2;
-		canvasPreview.canvas.height = canvasBox.canvas.height/2;
-		finalImage = canvasBox.canvas.toDataURL();
-	}
-
-	// set the preview image
-	var $img = $(".imgPreview");
-	$img.css("display", "block");
-	$img.css("width", canvasPreview.canvas.width);
-	$img.css("height", canvasPreview.canvas.height);
-	$img.css("background-color", canvasBox.canvas.style.backgroundColor);
-	$(".imgPreview").attr("src", finalImage);
-}
-
-function backToUploadArea() {
-	canvasBox.transformations.clear();
-	$cropArea.css("display", "none");
-	$form.css("display", "inline-block");
-	$(".buttons").css("display", "none");
-	canvas.style.display = "none";
-	canvasBox.transformations.clear();
-}
-
-function scrollMouse(e) {
-	e.preventDefault();
-
-	// for IE
-	if(!e)
-		e = window.event;
-
-	var delta = 0;
-	if (e.originalEvent.wheelDelta) /* IE/Opera. */
-        delta = e.originalEvent.wheelDelta/120;
-    else if (e.originalEvent.detail) /* Mozilla case. */
-        delta = -e.originalEvent.detail/3;
-
-    if(delta >= 0)
-    	canvasBox.transformations.scale(canvasBox.transformations.scaleFactor);
-    else
-    	canvasBox.transformations.scale(1/canvasBox.transformations.scaleFactor);
-}
 
 function implementFunctionalities() {
 	// initialize the image and place it in the good dimensions in the canvas
@@ -327,7 +244,7 @@ function implementFunctionalities() {
 		.on('dragleave dragend drop', function() {
 			$form.removeClass('is-dragover');
 		})
-		.on('drop', function(e) {
+		.on('drop', function(e) { // drag and drop upload functionality
 			droppedFiles = e.originalEvent.dataTransfer.files;
 			if(droppedFiles[0].type.split("/")[0] == "image")
 				enterImageMode(droppedFiles[0]);
@@ -341,4 +258,112 @@ function implementFunctionalities() {
 function isAdvancedUpload() {
 	var div = document.createElement('div');
 	return (('draggable' in div) || ('ondragstart' in div && 'ondrop' in div)) && 'FormData' in window && 'FileReader' in window;
+}
+
+// functionality of the crop mode in which, options can be modified (for example aspectRatio)
+function cropMode() {
+	$cropArea.css("display") == "none" ? $cropArea.css("display", "block") : $cropArea.css("display", "none")
+	$cropArea.draggable({containment:"parent"})
+			 .resizable({
+			 	start: function(event, ui) { // set max size at resize functionality of the crop area
+			 		$cropArea.css("max-height", $cropArea.parent().height() - $cropArea.position().top);
+			 		$cropArea.css("max-width", $cropArea.parent().width() - $cropArea.position().left);
+			 	},
+			 	aspectRatio:true
+			 });
+}
+
+// at each action (rotation, translation, zoom, etc...) we clear the canvas and reapply all the transformations
+// save() and restore() because we just want the transformations between each frame, but not keep the modified space (problem for example if we want to initialize)
+function performAction() {
+	canvasBox.clear();
+
+	canvasBox.ctx.save();
+
+	canvasBox.ctx.translate(image.posWidth + image.width/2, image.posHeight + image.height/2);
+	canvasBox.ctx.translate(canvasBox.transformations.translateWidth, canvasBox.transformations.translateHeight);
+
+	canvasBox.ctx.scale(canvasBox.transformations.scaleGlobal, canvasBox.transformations.scaleGlobal);
+	
+	canvasBox.ctx.rotate(canvasBox.transformations.rotationAngle*Math.PI/180);
+	canvasBox.ctx.scale(canvasBox.transformations.flipHorizontal, canvasBox.transformations.flipVertical);
+
+	canvasBox.ctx.drawImage(image.object, -image.width/2, -image.height/2, image.width, image.height);
+
+	canvasBox.ctx.restore();
+}
+
+// upload mode when file is selected manually (not by drag-and-drop)
+function uploadManually() {
+	var file = document.querySelector('input[type=file]').files[0];
+	enterImageMode(file);
+}
+
+// we treat the image (get from manual upload or drag-and-drop upload)
+function enterImageMode(image) {
+	// "load" listener in implementFunctionalities()
+	fr.readAsDataURL(image);
+}
+
+// get the image data from the canvas and specifically from the crop area if enabled
+function generatePreview() {
+	var imageData;
+	var finalImage;
+
+	// if crop functionality is enabled
+	if($cropArea.css("display") == "block") {
+		// first get image data from the canvas according to the crop area position
+		imageData = canvasBox.ctx.getImageData($cropArea.position().left, $cropArea.position().top, $cropArea.width(), $cropArea.height());
+		canvasPreview.canvas.width = $cropArea.width();
+		canvasPreview.canvas.height = $cropArea.height();
+
+		// store the data in the new canvas
+		canvasPreview.ctx.putImageData(imageData, 0, 0);
+
+		// get the base64 format image from the previous created canvas containing the image displayed in the crop area
+		finalImage = canvasPreview.canvas.toDataURL();
+	} else { // else, we get the entire canvas
+		canvasPreview.canvas.width = canvasBox.canvas.width/2;
+		canvasPreview.canvas.height = canvasBox.canvas.height/2;
+		finalImage = canvasBox.canvas.toDataURL();
+	}
+
+	// set the preview image
+	var $img = $(".imgPreview");
+	$img.css("display", "block");
+	$img.css("width", canvasPreview.canvas.width);
+	$img.css("height", canvasPreview.canvas.height);
+	$img.css("background-color", canvasBox.canvas.style.backgroundColor);
+
+	// "finalImage" contains the final src value of the modified image --> use it in the getPaylod of the plugin
+	$(".imgPreview").attr("src", finalImage);
+}
+
+// at manipulation view (canvas view), if we press the button "canc" (cancel), we go back to the initial view (upload view) in which we can reselect an image
+function backToUploadArea() {
+	canvasBox.transformations.clear();
+	$cropArea.css("display", "none");
+	$form.css("display", "inline-block");
+	$(".buttons").css("display", "none");
+	canvas.style.display = "none";
+}
+
+// wheel event, in which we rescale the image depending on the wheel orientation
+function scrollMouse(e) {
+	e.preventDefault();
+
+	// for IE
+	if(!e)
+		e = window.event;
+
+	var delta = 0;
+	if (e.originalEvent.wheelDelta) /* IE/Opera. */
+        delta = e.originalEvent.wheelDelta/120;
+    else if (e.originalEvent.detail) /* Mozilla case. */
+        delta = -e.originalEvent.detail/3;
+
+    if(delta >= 0)
+    	canvasBox.transformations.scale(canvasBox.transformations.scaleFactor);
+    else
+    	canvasBox.transformations.scale(1/canvasBox.transformations.scaleFactor);
 }
